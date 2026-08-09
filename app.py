@@ -21,11 +21,16 @@ def ensure_packages():
         try:
             importlib.import_module(import_name)
         except ImportError:
-            subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", pip_name]
-            )
+            try:
+                subprocess.check_call(
+                    [sys.executable, "-m", "pip", "install", pip_name]
+                )
+            except Exception:
+                pass
     try:
         importlib.invalidate_caches()
+    except Exception:
+        pass
     except Exception:
         pass
 
