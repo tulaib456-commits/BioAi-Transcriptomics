@@ -1,0 +1,9 @@
+uploads/
+models/
+exports/
+processed/
+reports/
+__pycache__/
+*.pyc
+.venv/
+venv/
