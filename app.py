@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import importlib
+import streamlit as st
 
 REQUIRED_PACKAGES = {
     "pandas": "pandas",
@@ -16,19 +17,43 @@ REQUIRED_PACKAGES = {
     "gseapy": "gseapy",
 }
 
+def ensure_packages():
+    for import_name, pip_name in REQUIRED_PACKAGES.items():
+        try:
+            importlib.import_module(import_name)
+        except ImportError:
+            try:
+                subprocess.check_call(
+                    [sys.executable, "-m", "pip", "install", pip_name]
+                )
+            except Exception:
+                pass
+    try:
+        importlib.invalidate_caches()
+    except Exception:
+        pass
+
+ensure_packages()
+
 from modules.auth import build_authenticator, register_user
 
-st.set_page_config(page_title="BioAI", layout="wide")
+st.set_page_config(
+    page_title="BioAI",
+    page_icon="🧬",
+    layout="wide"
+)
 
 authenticator = build_authenticator()
 
 authenticator.login(location="main")
 
 if st.session_state.get("authentication_status") is False:
+
     st.error("Username or password is incorrect.")
 
 elif st.session_state.get("authentication_status") is None:
 
+    st.title("BioAI")
     st.info("Log in above, or create a new account below.")
 
     with st.expander("Create a new account"):
@@ -59,49 +84,11 @@ elif st.session_state.get("authentication_status"):
         st.write(f"Logged in as **{st.session_state['name']}**")
         authenticator.logout(location="sidebar")
 
-def ensure_packages():
-    for import_name, pip_name in REQUIRED_PACKAGES.items():
-        try:
-            importlib.import_module(import_name)
-        except ImportError:
-            try:
-                subprocess.check_call(
-                    [sys.executable, "-m", "pip", "install", pip_name]
-                )
-            except Exception:
-                pass
-    try:   
-        importlib.invalidate_caches()
-    except Exception:
-        pass
-    except Exception:
-        pass
+    st.title("BioAI")
+    st.markdown(
+        """
+        # Welcome to BioAI
 
-ensure_packages()
-
-import streamlit as st
-
-
-st.set_page_config(
-
-    page_title="BioAI",
-
-    page_icon="🧬",
-
-    layout="wide"
-
-)
-
-st.title("BioAI")
-
-st.markdown(
-
-"""
-
-# Welcome to BioAI
-
-Choose a module from the left sidebar.
-
-"""
-
-)
+        Choose a module from the left sidebar.
+        """
+    )
