@@ -37,7 +37,10 @@ ensure_packages()
 
 from modules.auth import require_login, sign_out
 
-st.set_page_config(page_title="BioAI", page_icon="🧬", layout="wide")
+st.set_page_config(
+    page_title="BioAI", 
+    page_icon="🧬", 
+    layout="wide")
 
 require_login()
 
