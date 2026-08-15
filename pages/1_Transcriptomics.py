@@ -34,6 +34,9 @@ from modules.transcriptomics.enrichment import (
     ENRICHR_LIBRARIES,
     SUPPORTED_ORGANISMS
 )
+from modules.auth import require_login
+
+require_login()
 import os
 import tempfile
 

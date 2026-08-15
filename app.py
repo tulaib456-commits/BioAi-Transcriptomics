@@ -35,60 +35,24 @@ def ensure_packages():
 
 ensure_packages()
 
-from modules.auth import build_authenticator, register_user
+from modules.auth import require_login, sign_out
 
-st.set_page_config(
-    page_title="BioAI",
-    page_icon="🧬",
-    layout="wide"
+st.set_page_config(page_title="BioAI", page_icon="🧬", layout="wide")
+
+require_login()
+
+with st.sidebar:
+    st.write(f"Logged in as **{st.session_state.logged_in_user['full_name']}**")
+    if st.button("Log Out"):
+        sign_out()
+        st.session_state.logged_in_user = None
+        st.rerun()
+
+st.title("BioAI")
+st.markdown(
+    """
+    # Welcome to BioAI
+
+    Choose a module from the left sidebar.
+    """
 )
-
-authenticator = build_authenticator()
-
-authenticator.login(location="main")
-
-if st.session_state.get("authentication_status") is False:
-
-    st.error("Username or password is incorrect.")
-
-elif st.session_state.get("authentication_status") is None:
-
-    st.title("BioAI")
-    st.info("Log in above, or create a new account below.")
-
-    with st.expander("Create a new account"):
-
-        new_username = st.text_input("Username", key="reg_username")
-        new_email = st.text_input("Email", key="reg_email")
-        new_name = st.text_input("Full Name", key="reg_name")
-        new_password = st.text_input("Password", type="password", key="reg_password")
-
-        if st.button("Register"):
-
-            if not (new_username and new_email and new_name and new_password):
-                st.warning("Please fill in every field.")
-            else:
-                success, message = register_user(
-                    new_username, new_email, new_name, new_password
-                )
-                if success:
-                    st.success(message)
-                else:
-                    st.error(message)
-
-    st.stop()
-
-elif st.session_state.get("authentication_status"):
-
-    with st.sidebar:
-        st.write(f"Logged in as **{st.session_state['name']}**")
-        authenticator.logout(location="sidebar")
-
-    st.title("BioAI")
-    st.markdown(
-        """
-        # Welcome to BioAI
-
-        Choose a module from the left sidebar.
-        """
-    )
