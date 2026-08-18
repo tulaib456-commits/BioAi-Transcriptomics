@@ -1,10 +1,18 @@
+import os
 import streamlit as st
 from supabase import create_client
 
 
+def get_secret(key):
+    try:
+        return st.secrets[key]
+    except Exception:
+        return os.environ.get(key)
+
+
 def get_supabase_client():
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
+    url = get_secret("SUPABASE_URL")
+    key = get_secret("SUPABASE_KEY")
     return create_client(url, key)
 
 
