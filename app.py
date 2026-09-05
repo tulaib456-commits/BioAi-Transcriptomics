@@ -1,3 +1,9 @@
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn=get_secret("https://e1573b248ad8364f8a9aa78ebe76f265@o4512023179624448.ingest.us.sentry.io/4512023245946880"),
+    traces_sample_rate=0.1,
+)
 import subprocess
 import sys
 import importlib

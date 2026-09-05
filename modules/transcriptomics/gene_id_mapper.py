@@ -10,13 +10,12 @@ except ImportError:
 
 ENSEMBL_PATTERN = re.compile(r"^ENSG\d+")
 ENTREZ_PATTERN = re.compile(r"^\d+$")
+UNIPROT_PATTERN = re.compile(
+    r"^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})(-\d+)?$"
+)
 
 
 def detect_id_type(gene_ids, sample_size=50):
-    """
-    Returns 'ensembl', 'entrez', or 'symbol' based on a sample of
-    gene ID values. 'symbol' means no conversion is needed.
-    """
 
     sample = [str(g) for g in list(gene_ids)[:sample_size] if pd.notna(g)]
 
@@ -25,11 +24,14 @@ def detect_id_type(gene_ids, sample_size=50):
 
     ensembl_count = sum(1 for g in sample if ENSEMBL_PATTERN.match(g))
     entrez_count = sum(1 for g in sample if ENTREZ_PATTERN.match(g))
+    uniprot_count = sum(1 for g in sample if UNIPROT_PATTERN.match(g))
 
     if ensembl_count / len(sample) > 0.8:
         return "ensembl"
     if entrez_count / len(sample) > 0.8:
         return "entrez"
+    if uniprot_count / len(sample) > 0.8:
+        return "uniprot"
 
     return "symbol"
 
@@ -58,10 +60,12 @@ class GeneIDConverter:
                 "Run: pip install mygene"
             )
 
-        if id_type not in ("ensembl", "entrez"):
+                scope_map = {"ensembl": "ensembl.gene", "entrez": "entrezgene", "uniprot": "uniprot"}
+
+        if id_type not in scope_map:
             return None, None, f"Unsupported ID type: {id_type}"
 
-        scope = "ensembl.gene" if id_type == "ensembl" else "entrezgene"
+        scope = scope_map[id_type]
 
         ids = self.dataframe[self.gene_column].astype(str).tolist()
 
