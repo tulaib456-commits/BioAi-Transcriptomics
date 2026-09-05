@@ -60,7 +60,7 @@ class GeneIDConverter:
                 "Run: pip install mygene"
             )
 
-                scope_map = {"ensembl": "ensembl.gene", "entrez": "entrezgene", "uniprot": "uniprot"}
+        scope_map = {"ensembl": "ensembl.gene", "entrez": "entrezgene", "uniprot": "uniprot"}
 
         if id_type not in scope_map:
             return None, None, f"Unsupported ID type: {id_type}"
