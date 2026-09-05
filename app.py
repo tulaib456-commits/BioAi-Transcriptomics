@@ -1,9 +1,3 @@
-import sentry_sdk
-
-sentry_sdk.init(
-    dsn=get_secret("https://e1573b248ad8364f8a9aa78ebe76f265@o4512023179624448.ingest.us.sentry.io/4512023245946880"),
-    traces_sample_rate=0.1,
-)
 import subprocess
 import sys
 import importlib
@@ -41,7 +35,13 @@ def ensure_packages():
 
 ensure_packages()
 
-from modules.auth import require_login, sign_out
+from modules.auth import require_login, sign_out, get_secret
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn=get_secret("SENTRY_DSN"),
+    traces_sample_rate=0.1,
+)
 
 st.set_page_config(
     page_title="BioAI", 
