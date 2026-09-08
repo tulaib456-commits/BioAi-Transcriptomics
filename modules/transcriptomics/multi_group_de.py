@@ -38,12 +38,16 @@ class MultiGroupDE:
     picked in the Normalization tab.
     """
 
-    def __init__(self, dataframe, group_map, gene_column):
+    def __init__(self, dataframe, group_map, gene_column, already_normalized=False):
         self.gene_column = gene_column
         self.group_map = group_map
         self.samples = list(group_map.keys())
         self.groups = sorted(set(group_map.values()))
-        self.df = self._cpm_log2(dataframe)
+
+        if already_normalized:
+            self.df = dataframe.copy()
+        else:
+            self.df = self._cpm_log2(dataframe)
 
     def _cpm_log2(self, dataframe):
         df = dataframe.copy()

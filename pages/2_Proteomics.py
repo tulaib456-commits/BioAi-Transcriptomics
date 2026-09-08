@@ -34,7 +34,7 @@ if "proteomics_dataset" not in st.session_state:
 
 tabs = st.tabs([
     "Upload", "Missing Values", "Normalization",
-    "Differential Expression", "Enrichment Analysis", "Machine Learning"
+    "Differential Expression", "Enrichment Analysis", "Machine Learning", "Export"
 ])
 
 with tabs[0]:
@@ -180,7 +180,7 @@ with tabs[3]:
 
             if group_a and group_b:
 
-                de = DifferentialExpression(data, group_a, group_b)
+                de = DifferentialExpression(data, group_a, group_b, already_normalized=True)
                 de_results = de.run()
 
                 st.session_state.proteomics_de_results = de_results
@@ -198,7 +198,7 @@ with tabs[3]:
 
             if len(set(valid_map.values())) >= 2 and st.button("Run ANOVA", key="prot_anova_run"):
 
-                mgde = MultiGroupDE(data, valid_map, protein_column)
+                mgde = MultiGroupDE(data, valid_map, protein_column, already_normalized=True)
                 anova_results = mgde.run()
 
                 st.session_state.proteomics_de_results = anova_results
@@ -270,3 +270,43 @@ with tabs[5]:
 
     else:
         st.info("Run Differential Expression first.")
+
+
+with tabs[6]:
+
+    st.header("Export")
+
+    if st.session_state.proteomics_dataset is not None:
+        st.download_button(
+            "Download Raw Dataset (CSV)",
+            st.session_state.proteomics_dataset.to_csv(index=False),
+            file_name="proteomics_raw.csv", mime="text/csv"
+        )
+
+    if st.session_state.proteomics_filtered is not None:
+        st.download_button(
+            "Download Filtered/Imputed Dataset (CSV)",
+            st.session_state.proteomics_filtered.to_csv(index=False),
+            file_name="proteomics_filtered.csv", mime="text/csv"
+        )
+
+    if st.session_state.proteomics_normalized is not None:
+        st.download_button(
+            "Download Normalized Dataset (CSV)",
+            st.session_state.proteomics_normalized.to_csv(index=False),
+            file_name="proteomics_normalized.csv", mime="text/csv"
+        )
+
+    if st.session_state.get("proteomics_de_results") is not None:
+        st.download_button(
+            "Download Differential Expression Results (CSV)",
+            st.session_state.proteomics_de_results.to_csv(index=False),
+            file_name="proteomics_de_results.csv", mime="text/csv"
+        )
+
+    if st.session_state.get("proteomics_enrichment") is not None:
+        st.download_button(
+            "Download Enrichment Results (CSV)",
+            st.session_state.proteomics_enrichment.to_csv(index=False),
+            file_name="proteomics_enrichment.csv", mime="text/csv"
+        )

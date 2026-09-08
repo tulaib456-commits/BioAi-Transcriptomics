@@ -66,7 +66,7 @@ class DifferentialExpression:
     in the app for export purposes.
     """
 
-    def __init__(self, dataframe, group_a, group_b):
+    def __init__(self, dataframe, group_a, group_b, already_normalized=False):
 
         self.gene_column = detect_gene_column(dataframe)
 
@@ -75,7 +75,10 @@ class DifferentialExpression:
 
         self.raw = dataframe.copy()
 
-        self.df = self._cpm_log2(dataframe)
+        if already_normalized:
+            self.df = dataframe.copy()
+        else:
+            self.df = self._cpm_log2(dataframe)
 
     def _cpm_log2(self, dataframe):
 

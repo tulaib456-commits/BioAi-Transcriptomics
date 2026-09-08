@@ -16,6 +16,10 @@ def group_assignment_widget(samples, key_prefix, suggested_map=None):
     """
 
     state_key = f"{key_prefix}_group_table"
+    version_key = f"{key_prefix}_table_version"
+
+    if version_key not in st.session_state:
+        st.session_state[version_key] = 0
 
     if state_key not in st.session_state:
         st.session_state[state_key] = pd.DataFrame({
@@ -31,7 +35,7 @@ def group_assignment_widget(samples, key_prefix, suggested_map=None):
         "bulk keyword assignment below instead of editing row by row."
     )
 
-    with st.expander("Bulk assign by keyword", expanded=True):
+        with st.expander("Bulk assign by keyword", expanded=True):
 
         col1, col2, col3 = st.columns([2, 2, 1])
 
@@ -58,6 +62,7 @@ def group_assignment_widget(samples, key_prefix, suggested_map=None):
 
             table.loc[mask, "Group"] = label
             st.session_state[state_key] = table
+            st.session_state[version_key] += 1
 
             if matched > 0:
                 st.success(f"Assigned '{label}' to {matched} matching sample(s).")
@@ -93,6 +98,7 @@ def group_assignment_widget(samples, key_prefix, suggested_map=None):
                             matched += 1
 
                     st.session_state[state_key] = table
+                    st.session_state[version_key] += 1
                     st.success(f"Matched and filled {matched} of {len(table)} samples.")
 
             except Exception as error:
@@ -103,7 +109,7 @@ def group_assignment_widget(samples, key_prefix, suggested_map=None):
         column_config={"Sample": st.column_config.TextColumn(disabled=True)},
         hide_index=True,
         use_container_width=True,
-        key=f"{key_prefix}_editor"
+        key=f"{key_prefix}_editor_{st.session_state[version_key]}"
     )
 
     st.session_state[state_key] = edited_table
