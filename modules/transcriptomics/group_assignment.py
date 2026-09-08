@@ -35,7 +35,7 @@ def group_assignment_widget(samples, key_prefix, suggested_map=None):
         "bulk keyword assignment below instead of editing row by row."
     )
 
-        with st.expander("Bulk assign by keyword", expanded=True):
+    with st.expander("Bulk assign by keyword", expanded=True):
 
         col1, col2, col3 = st.columns([2, 2, 1])
 
