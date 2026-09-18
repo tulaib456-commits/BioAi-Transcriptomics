@@ -185,6 +185,8 @@ with tabs[3]:
                 de_results = de.run()
 
                 st.session_state.proteomics_de_results = de_results
+                st.session_state.proteomics_de_groups = (group_a, group_b)
+                
 
                 st.success(f"{int(de_results['Significant'].sum())} significant proteins")
                 display_results_table(de_results, "prot_de")
@@ -208,10 +210,11 @@ with tabs[3]:
                 anova_results = mgde.run()
 
                 st.session_state.proteomics_de_results = anova_results
+                st.session_state.proteomics_multi_de_engine = mgde                
 
                 st.success(f"{int(anova_results['Significant'].sum())} significant proteins")
                 display_results_table(anova_results, "prot_anova")
-                
+
                 st.subheader("Inspect a Protein")
 
                 top_proteins = anova_results.head(30)[anova_results.columns[0]].tolist()
@@ -305,7 +308,25 @@ with tabs[5]:
         de_results = st.session_state.proteomics_de_results
         significant_proteins = de_results.loc[de_results["Significant"], de_results.columns[0]].tolist()
 
-        group_map = group_assignment_widget(samples, key_prefix="prot_ml")
+        label_source = st.radio(
+            "Sample Labels From",
+            ["Two-Group DE assignment", "Multi-Group ANOVA assignment", "Manual assignment"],
+            horizontal=True, key="prot_ml_label_source"
+        )
+
+        group_map = None
+
+        if label_source == "Two-Group DE assignment" and st.session_state.get("proteomics_de_groups"):
+            group_a, group_b = st.session_state.proteomics_de_groups
+            group_map = {s: "Group A" for s in group_a}
+            group_map.update({s: "Group B" for s in group_b})
+
+        elif label_source == "Multi-Group ANOVA assignment" and st.session_state.get("proteomics_multi_de_engine"):
+            group_map = st.session_state.proteomics_multi_de_engine.group_map
+
+        else:
+            st.info("No assignment found from that step yet — assign manually below.")
+            group_map = group_assignment_widget(samples, key_prefix="prot_ml_manual")
 
         if len(set(group_map.values())) >= 2 and significant_proteins:
 
