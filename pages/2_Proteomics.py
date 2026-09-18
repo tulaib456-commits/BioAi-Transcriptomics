@@ -22,6 +22,7 @@ from modules.transcriptomics.dnn_classifier import DNNClassifier
 from modules.transcriptomics.model_interpretation import ROCAnalysis, ModelInterpreter
 from modules.transcriptomics.plots import PlotFactory
 from modules.transcriptomics.result_display import display_results_table
+from modules.transcriptomics.pdf_report import generate_pdf_report
 
 require_login()
 
@@ -191,6 +192,11 @@ with tabs[3]:
                 plot_factory = PlotFactory(de.df)
                 st.plotly_chart(plot_factory.volcano_plot(de_results), use_container_width=True, key="prot_volcano")
 
+                st.subheader("PCA")
+                pca_group_map = {s: "Group A" for s in group_a}
+                pca_group_map.update({s: "Group B" for s in group_b})
+                st.plotly_chart(plot_factory.pca_plot(pca_group_map), use_container_width=True, key="prot_pca")
+
         else:
 
             suggested_map = suggest_multi_groups(samples)
@@ -205,7 +211,52 @@ with tabs[3]:
 
                 st.success(f"{int(anova_results['Significant'].sum())} significant proteins")
                 display_results_table(anova_results, "prot_anova")
+                
+                st.subheader("Inspect a Protein")
 
+                top_proteins = anova_results.head(30)[anova_results.columns[0]].tolist()
+
+                selected_protein = st.selectbox(
+                    "Choose a significant protein to inspect",
+                    top_proteins, key="prot_anova_select"
+                )
+
+                plot_factory = PlotFactory(data)
+
+                st.subheader("Compare Multiple Proteins")
+
+                multi_proteins = st.multiselect(
+                    "Select proteins to compare (heatmap)",
+                    top_proteins, default=top_proteins[:10], key="prot_anova_multi"
+                )
+
+                if multi_proteins:
+
+                    expr_rows = []
+                    for protein in multi_proteins:
+                        row = mgde.df[mgde.df[protein_column] == protein]
+                        if not row.empty:
+                            expr_rows.append(row[mgde.samples].iloc[0])
+
+                    if expr_rows:
+                        expr_matrix = pd.DataFrame(expr_rows, index=multi_proteins)
+                        st.plotly_chart(
+                            plot_factory.top_genes_heatmap(expr_matrix),
+                            use_container_width=True, key="prot_anova_heatmap"
+                        )
+
+                if selected_protein:
+
+                    expression_table = mgde.gene_expression_table(selected_protein)
+
+                    st.plotly_chart(
+                        plot_factory.gene_boxplot(expression_table, selected_protein),
+                        use_container_width=True, key="prot_anova_box"
+                    )
+
+                    st.caption("Tukey HSD pairwise comparison:")
+                    posthoc_table = mgde.posthoc(selected_protein)
+                    st.dataframe(posthoc_table)
     else:
         st.info("Complete Normalization first.")
 
@@ -233,6 +284,9 @@ with tabs[4]:
             else:
                 st.session_state.proteomics_enrichment = results
                 display_results_table(results, "prot_enrichment", long_text_columns=["Matched_Genes", "Pathway"])
+
+                plot_factory = PlotFactory(st.session_state.proteomics_normalized)
+                st.plotly_chart(plot_factory.enrichment_bar_plot(results), use_container_width=True, key="prot_enrich_bar")
 
     else:
         st.info("Run Differential Expression first.")
@@ -267,6 +321,33 @@ with tabs[5]:
 
             if st.session_state.get("prot_ml_summary") is not None:
                 st.dataframe(st.session_state.prot_ml_summary)
+
+                best_model = st.session_state.prot_ml_summary.iloc[0]["Model"]
+
+                cm = ml.confusion_matrix_cv(best_model)
+                plot_factory = PlotFactory(data)
+                st.plotly_chart(plot_factory.confusion_matrix_heatmap(cm), use_container_width=True, key="prot_cm")
+
+                roc_analysis = ROCAnalysis(ml, best_model)
+                curves = roc_analysis.curves()
+
+                col_roc, col_pr = st.columns(2)
+                with col_roc:
+                    st.plotly_chart(plot_factory.roc_curve_plot(curves), use_container_width=True, key="prot_roc")
+                with col_pr:
+                    st.plotly_chart(plot_factory.pr_curve_plot(curves), use_container_width=True, key="prot_pr")
+
+                if st.button("Compute SHAP Importance", key="prot_shap_btn"):
+                    final_pipeline = ml.fit_final_model(best_model)
+                    interpreter = ModelInterpreter(final_pipeline, ml.X)
+                    shap_values, shap_error = interpreter.compute()
+
+                    if shap_error:
+                        st.warning(shap_error)
+                    else:
+                        importance = interpreter.importance_table(shap_values)
+                        st.dataframe(importance.head(20))
+                        st.plotly_chart(plot_factory.shap_importance_plot(importance), use_container_width=True, key="prot_shap")
 
     else:
         st.info("Run Differential Expression first.")
@@ -310,3 +391,29 @@ with tabs[6]:
             st.session_state.proteomics_enrichment.to_csv(index=False),
             file_name="proteomics_enrichment.csv", mime="text/csv"
         )
+
+        st.divider()
+        st.subheader("Full PDF Report")
+
+        if st.button("Generate PDF Report", key="prot_pdf_btn"):
+
+            figures = {}
+            if st.session_state.get("proteomics_enrichment") is not None:
+                pf = PlotFactory(st.session_state.proteomics_normalized)
+                figures["Top Enriched Pathways"] = pf.enrichment_bar_plot(st.session_state.proteomics_enrichment)
+
+            pdf_bytes = generate_pdf_report(
+                dataset_summary_dict={"Proteins": len(st.session_state.proteomics_dataset), "Samples": len(detect_sample_columns(st.session_state.proteomics_dataset))},
+                qc_dict={"Missing values handled": "Yes" if st.session_state.proteomics_filtered is not None else "No"},
+                filtering_info=f"{len(st.session_state.proteomics_filtered)} proteins after missing-value filtering." if st.session_state.proteomics_filtered is not None else "Not yet run.",
+                normalization_method="Applied" if st.session_state.proteomics_normalized is not None else "Not yet run",
+                de_results=st.session_state.get("proteomics_de_results"),
+                enrichment_results=st.session_state.get("proteomics_enrichment"),
+                ml_summary=st.session_state.get("prot_ml_summary"),
+                figures=figures if figures else None
+            )
+
+            st.session_state.prot_pdf_bytes = pdf_bytes
+
+        if st.session_state.get("prot_pdf_bytes") is not None:
+            st.download_button("Download PDF Report", st.session_state.prot_pdf_bytes, file_name="Proteomics_Report.pdf", mime="application/pdf", key="prot_pdf_download")
